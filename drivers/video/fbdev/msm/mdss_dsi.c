@@ -37,6 +37,7 @@
 #include "mdss_dsi_phy.h"
 #include "mdss_dba_utils.h"
 #include "dsi_access.h"
+#include "mdss_livedisplay.h"
 
 #ifdef CONFIG_STATE_NOTIFIER
 #include <linux/state_notifier.h>

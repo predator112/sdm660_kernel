@@ -73,3 +73,4 @@ subdir-ccflags-y += \
 	-Wno-parentheses-equality \
 	-Wno-duplicate-decl-specifier
 
+obj-$(CONFIG_FB_MSM_MDSS) += mdss_livedisplay.o
