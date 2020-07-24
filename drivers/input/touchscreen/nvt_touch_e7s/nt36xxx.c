@@ -46,9 +46,9 @@
 #if NVT_TOUCH_ESD_PROTECT
 static struct delayed_work nvt_esd_check_work;
 static struct workqueue_struct *nvt_esd_check_wq;
-static unsigned long irq_timer;
-uint8_t esd_check;
-uint8_t esd_retry;
+static unsigned long irq_timer = 0;
+uint8_t esd_check = false;
+uint8_t esd_retry = 0;
 uint8_t esd_retry_max = 5;
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
@@ -77,9 +77,7 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
 static void nvt_ts_early_suspend(struct early_suspend *h);
 static void nvt_ts_late_resume(struct early_suspend *h);
 #endif
-#ifdef CONFIG_TOUCHSCREEN_COMMON
 #include <linux/input/tp_common.h>
-#endif
 
 static const struct nvt_ts_mem_map NT36772_memory_map = {
 	.EVENT_BUF_ADDR           = 0x11E00,
@@ -241,12 +239,12 @@ const uint16_t gesture_key_array[] = {
 	KEY_WAKEUP,
 	KEY_WAKEUP,
 	KEY_WAKEUP,
-        KEY_DOUBLE_TAP,
+    KEY_DOUBLE_TAP,
 };
 
 bool enable_gesture_mode = false;
-bool delay_gesture;
-bool suspend_state;
+bool delay_gesture = false;
+bool suspend_state = false;
 #define WAKEUP_OFF 4
 #define WAKEUP_ON 5
 
@@ -272,7 +270,7 @@ int nvt_gesture_switch(struct input_dev *dev, unsigned int type, unsigned int co
 	}
 	return 0;
 }
-#ifdef CONFIG_TOUCHSCREEN_COMMON
+
 static ssize_t double_tap_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
@@ -297,10 +295,45 @@ static struct tp_common_ops double_tap_ops = {
 	.show = double_tap_show,
 	.store = double_tap_store
 };
-#endif
+
+static int nvt_gesture_read(struct seq_file *file, void *v)
+{
+	seq_printf(file, "%d", enable_gesture_mode);
+	return 0;
+}
+ static int nvt_gesture_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, nvt_gesture_read, inode);
+}
+ static ssize_t nvt_gesture_write(struct file *file, const char __user *buf,
+			 size_t count, loff_t *ppos)
+{
+	uint8_t str;
+	if(copy_from_user(&str, buf, 1)); // ignore
+	enable_gesture_mode = (str == '1');
+	return 1;
+}
+ static const struct file_operations nvt_gesture_fops = {
+	.owner = THIS_MODULE,
+	.open = nvt_gesture_open,
+	.write = nvt_gesture_write,
+	.release = single_release,
+	.read = seq_read,
+	.llseek = seq_lseek,
+};
+static const struct file_operations nvt_gesture_fops_wake = {
+	.owner = THIS_MODULE,
+	.open = nvt_gesture_open,
+	.write = nvt_gesture_write,
+	.release = single_release,
+	.read = seq_read,
+	.llseek = seq_lseek,
+};
+#define NVT_GESTURE_NAME "nvt_wake_gesture"
+
 #endif
 
-static uint8_t bTouchIsAwake;
+static uint8_t bTouchIsAwake = 0;
 
 /*******************************************************
 Description:
@@ -450,7 +483,7 @@ int32_t nvt_clear_fw_status(void)
 
 	if (i >= retry) {
 		NVT_ERR("failed, i=%d, buf[1]=0x%02X\n", i, buf[1]);
-		return -EPERM;
+		return -1;
 	} else {
 		return 0;
 	}
@@ -489,7 +522,7 @@ int32_t nvt_check_fw_status(void)
 
 	if (i >= retry) {
 		NVT_ERR("failed, i=%d, buf[1]=0x%02X\n", i, buf[1]);
-		return -EPERM;
+		return -1;
 	} else {
 		return 0;
 	}
@@ -894,8 +927,10 @@ void nvt_ts_wakeup_gesture_report(uint8_t gesture_id, uint8_t *data)
 
 	if (keycode > 0) {
 		input_report_key(ts->input_dev, keycode, 1);
+		input_report_key(ts->input_dev, KEY_DOUBLE_TAP, 1);
 		input_sync(ts->input_dev);
 		input_report_key(ts->input_dev, keycode, 0);
+		input_report_key(ts->input_dev, KEY_DOUBLE_TAP, 0);
 		input_sync(ts->input_dev);
 	}
 }
@@ -1023,8 +1058,6 @@ static void nvt_ts_work_func(struct work_struct *work)
 	uint32_t position = 0;
 	uint32_t input_x = 0;
 	uint32_t input_y = 0;
-	uint32_t input_w = 0;
-	uint32_t input_p = 0;
 	uint8_t input_id = 0;
 #if MT_PROTOCOL_B
 	uint8_t press_id[TOUCH_MAX_FINGER_NUM] = {0};
@@ -1056,7 +1089,7 @@ static void nvt_ts_work_func(struct work_struct *work)
 
 #if WAKEUP_GESTURE
 	if (bTouchIsAwake == 0) {
-		input_id = (uint8_t)(point_data[1] >> 3);
+		input_id = (uint8_t) (point_data[1] >> 3);
 		nvt_ts_wakeup_gesture_report(input_id, point_data);
 		enable_irq(ts->client->irq);
 		mutex_unlock(&ts->lock);
@@ -1064,37 +1097,20 @@ static void nvt_ts_work_func(struct work_struct *work)
 	}
 #endif
 
-	finger_cnt = 0;
-
 	for (i = 0; i < ts->max_touch_num; i++) {
 		position = 1 + 6 * i;
-		input_id = (uint8_t)(point_data[position + 0] >> 3);
+		input_id = (uint8_t) (point_data[position] >> 3);
+
 		if ((input_id == 0) || (input_id > ts->max_touch_num))
 			continue;
 
-		if (((point_data[position] & 0x07) == 0x01) || ((point_data[position] & 0x07) == 0x02)) {
+		if (likely(((point_data[position] & 0x07) == 0x01) || ((point_data[position] & 0x07) == 0x02))) {
 #if NVT_TOUCH_ESD_PROTECT
 			/* update interrupt timer */
 			irq_timer = jiffies;
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
-			input_x = (uint32_t)(point_data[position + 1] << 4) + (uint32_t) (point_data[position + 3] >> 4);
-			input_y = (uint32_t)(point_data[position + 2] << 4) + (uint32_t) (point_data[position + 3] & 0x0F);
-			if ((input_x < 0) || (input_y < 0))
-				continue;
-			if ((input_x > ts->abs_x_max) || (input_y > ts->abs_y_max))
-				continue;
-			input_w = (uint32_t)(point_data[position + 4]);
-			if (input_w == 0)
-				input_w = 1;
-			if (i < 2) {
-				input_p = (uint32_t)(point_data[position + 5]) + (uint32_t)(point_data[i + 63] << 8);
-				if (input_p > TOUCH_FORCE_NUM)
-					input_p = TOUCH_FORCE_NUM;
-			} else {
-				input_p = (uint32_t)(point_data[position + 5]);
-			}
-			if (input_p == 0)
-				input_p = 1;
+			input_x = (uint32_t) (point_data[position + 1] << 4) + (uint32_t) (point_data[position + 3] >> 4);
+			input_y = (uint32_t) (point_data[position + 2] << 4) + (uint32_t) (point_data[position + 3] & 0x0F);
 
 #if MT_PROTOCOL_B
 			press_id[input_id - 1] = 1;
@@ -1107,11 +1123,9 @@ static void nvt_ts_work_func(struct work_struct *work)
 
 			input_report_abs(ts->input_dev, ABS_MT_POSITION_X, input_x);
 			input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, input_y);
-			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, input_w);
-			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, input_p);
+			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, TOUCH_FORCE_NUM);
 
-#if MT_PROTOCOL_B
-#else /* MT_PROTOCOL_B */
+#if !(MT_PROTOCOL_B)
 			input_mt_sync(ts->input_dev);
 #endif /* MT_PROTOCOL_B */
 
@@ -1121,9 +1135,8 @@ static void nvt_ts_work_func(struct work_struct *work)
 
 #if MT_PROTOCOL_B
 	for (i = 0; i < ts->max_touch_num; i++) {
-		if (press_id[i] != 1) {
+		if (likely(press_id[i] != 1)) {
 			input_mt_slot(ts->input_dev, i);
-			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
 			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
 			input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, false);
 		}
@@ -1355,7 +1368,7 @@ static int32_t nvt_ts_probe(struct i2c_client *client, const struct i2c_device_i
 	mutex_unlock(&ts->lock);
 
 
-	nvt_wq = create_workqueue("nvt_wq");
+	nvt_wq = alloc_workqueue("nvt_wq", WQ_HIGHPRI | WQ_UNBOUND, 0);
 	if (!nvt_wq) {
 		NVT_ERR("nvt_wq create workqueue failed\n");
 		ret = -ENOMEM;
@@ -1415,14 +1428,19 @@ static int32_t nvt_ts_probe(struct i2c_client *client, const struct i2c_device_i
 	for (retry = 0; retry < (sizeof(gesture_key_array) / sizeof(gesture_key_array[0])); retry++) {
 		input_set_capability(ts->input_dev, EV_KEY, gesture_key_array[retry]);
 	}
+
+	if(proc_create("wake_node", 0666, NULL, &nvt_gesture_fops_wake) == NULL)
+		NVT_ERR("error while create gesture");
+	if(proc_create(NVT_GESTURE_NAME, 0666, NULL, &nvt_gesture_fops) == NULL)
+		NVT_ERR("error while create gesture");
+
 	wake_lock_init(&gestrue_wakelock, WAKE_LOCK_SUSPEND, "poll-wake-lock");
-#ifdef CONFIG_TOUCHSCREEN_COMMON
+
 	ret = tp_common_set_double_tap_ops(&double_tap_ops);
 	if (ret < 0) {
 		NVT_ERR("%s: Failed to create double_tap node err=%d\n",
 			__func__, ret);
 	}
-#endif
 #endif
 
 	sprintf(ts->phys, "input/ts");
@@ -1443,9 +1461,9 @@ static int32_t nvt_ts_probe(struct i2c_client *client, const struct i2c_device_i
 		NVT_LOG("int_trigger_type=%d\n", ts->int_trigger_type);
 
 #if WAKEUP_GESTURE
-		ret = request_irq(client->irq, nvt_ts_irq_handler, ts->int_trigger_type | IRQF_NO_SUSPEND, client->name, ts);
+		ret = request_irq(client->irq, nvt_ts_irq_handler, ts->int_trigger_type | IRQF_NO_SUSPEND | IRQF_PERF_CRITICAL, client->name, ts);
 #else
-		ret = request_irq(client->irq, nvt_ts_irq_handler, ts->int_trigger_type, client->name, ts);
+		ret = request_irq(client->irq, nvt_ts_irq_handler, ts->int_trigger_type | IRQF_PERF_CRITICAL, client->name, ts);
 #endif
 		if (ret != 0) {
 			NVT_ERR("request irq failed. ret=%d\n", ret);
@@ -1735,11 +1753,8 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
 
 	if (evdata && evdata->data && event == FB_EARLY_EVENT_BLANK) {
 		blank = evdata->data;
-		if (*blank == FB_BLANK_POWERDOWN) {
-		    if (ESD_TE_status == false) {
-				nvt_ts_suspend(&ts->client->dev);
-			}
-		}
+		if (*blank == FB_BLANK_POWERDOWN)
+			nvt_ts_suspend(&ts->client->dev);
 	} else if (evdata && evdata->data && event == FB_EVENT_BLANK) {
 		blank = evdata->data;
 		if (*blank == FB_BLANK_UNBLANK) {
