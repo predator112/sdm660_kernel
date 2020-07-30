@@ -26,13 +26,15 @@ export ARCH=arm64
 export LD_LIBRARY_PATH="/home/loli/install/bin/../lib:$PATH"
 
 # compile plox
-    make -C $(pwd) -j$(nproc) O=out predator_defconfig
-    PATH="/home/loli/install/bin:${PATH}"
-    make -j$(nproc) O=out ARCH=arm64 \
-           CC=clang \
-           CLANG_TRIPLE=aarch64-linux-gnu- \
-           CROSS_COMPILE=aarch64-linux-gnu- \
-           CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+make O=out ARCH=arm64 predator_defconfig
+
+PATH="home/loli/install/bin:home/loli/gcc64/bin:home/gcc32/bin:${PATH}" \
+make -j$(nproc --all) O=out \
+                      ARCH=arm64 \
+                      CC=clang \
+                      CLANG_TRIPLE=aarch64-linux-gnu- \
+                      CROSS_COMPILE=aarch64-elf- \
+                      CROSS_COMPILE_ARM32=arm-linux-androideabi-
            O=out| tee build.log
            if ! [ -a "$IMAGE" ]; then
                finerr
