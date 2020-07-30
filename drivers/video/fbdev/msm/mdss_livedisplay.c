@@ -166,7 +166,6 @@ int mdss_livedisplay_update(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 		// The CABC command on most modern panels is also responsible for
 		// other features such as SRE and ACO.  The register fields are bits
 		// and are OR'd together and sent in a single DSI command.
-<<<<<<< HEAD
 		if (mlc->cabc_level == CABC_UI) {
 			if (mlc->unified_cabc_cmds)
 				cabc_value |= mlc->cabc_ui_value;
@@ -183,14 +182,6 @@ int mdss_livedisplay_update(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 			else
 				len += mlc->cabc_video_cmds_len;
 		}
-=======
-		if (mlc->cabc_level == CABC_UI)
-			cabc_value |= mlc->cabc_ui_value;
-		else if (mlc->cabc_level == CABC_IMAGE)
-			cabc_value |= mlc->cabc_image_value;
-		else if (mlc->cabc_level == CABC_VIDEO)
-			cabc_value |= mlc->cabc_video_value;
->>>>>>> 39dd0a2dc922... video: mdss: LiveDisplay driver
 
 		if (mlc->sre_level == SRE_WEAK)
 			cabc_value |= mlc->sre_weak_value;
@@ -202,16 +193,10 @@ int mdss_livedisplay_update(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 		if (mlc->aco_enabled)
 			cabc_value |= mlc->aco_value;
 
-<<<<<<< HEAD
 		if (cabc_value || mlc->cabc_level == CABC_OFF)
 			len += mlc->cabc_cmds_len;
 
 		pr_debug("%s cabc=%d sre=%d aco=%d cmd=%d\n", __func__,
-=======
-		len += mlc->cabc_cmds_len;
-
-		pr_info("%s cabc=%d sre=%d aco=%d cmd=%d\n", __func__,
->>>>>>> 39dd0a2dc922... video: mdss: LiveDisplay driver
 				mlc->cabc_level, mlc->sre_level, mlc->aco_enabled,
 				cabc_value);
 	}
@@ -256,7 +241,6 @@ int mdss_livedisplay_update(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 
 	// CABC/SRE/ACO features
 	if (is_cabc_cmd(types) && mlc->cabc_cmds_len) {
-<<<<<<< HEAD
 		if (cabc_value || mlc->cabc_level == CABC_OFF) {
 			memcpy(cmd_buf + dlen, mlc->cabc_cmds, mlc->cabc_cmds_len);
 			dlen += mlc->cabc_cmds_len;
@@ -276,12 +260,6 @@ int mdss_livedisplay_update(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 				dlen += mlc->cabc_video_cmds_len;
 			}
 		}
-=======
-		memcpy(cmd_buf + dlen, mlc->cabc_cmds, mlc->cabc_cmds_len);
-		dlen += mlc->cabc_cmds_len;
-		// The CABC command parameter is the last value in the sequence
-		cmd_buf[dlen - 1] = cabc_value;
->>>>>>> 39dd0a2dc922... video: mdss: LiveDisplay driver
 	}
 
 	// And the post_cmd, can be used to turn on the panel
@@ -295,11 +273,8 @@ int mdss_livedisplay_update(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 	if (ret == 0) {
 		mdss_dsi_panel_cmds_send(ctrl_pdata, &dsi_cmds,
 				CMD_REQ_COMMIT | CMD_CLK_CTRL);
-<<<<<<< HEAD
 		kfree(dsi_cmds.buf);
 		kfree(dsi_cmds.cmds);
-=======
->>>>>>> 39dd0a2dc922... video: mdss: LiveDisplay driver
 	} else {
 		pr_err("%s: error parsing DSI command! ret=%d", __func__, ret);
 	}
@@ -547,19 +522,14 @@ int mdss_livedisplay_parse_dt(struct device_node *np, struct mdss_panel_info *pi
 	if (mlc->cabc_cmds_len > 0) {
 		rc = of_property_read_u32(np, "cm,mdss-livedisplay-cabc-ui-value", &tmp);
 		if (rc == 0) {
-<<<<<<< HEAD
 			// Read unified CABC cmds first
 			mlc->caps |= MODE_CABC;
 			mlc->unified_cabc_cmds = true;
-=======
-			mlc->caps |= MODE_CABC;
->>>>>>> 39dd0a2dc922... video: mdss: LiveDisplay driver
 			mlc->cabc_ui_value = (uint8_t)(tmp & 0xFF);
 			of_property_read_u32(np, "cm,mdss-livedisplay-cabc-image-value", &tmp);
 			mlc->cabc_image_value = (uint8_t)(tmp & 0xFF);
 			of_property_read_u32(np, "cm,mdss-livedisplay-cabc-video-value", &tmp);
 			mlc->cabc_video_value = (uint8_t)(tmp & 0xFF);
-<<<<<<< HEAD
 		} else {
 			// If unified CABC cmds don't exist, try independent cmds
 			mlc->cabc_ui_cmds = of_get_property(np,
@@ -571,8 +541,6 @@ int mdss_livedisplay_parse_dt(struct device_node *np, struct mdss_panel_info *pi
 				mlc->cabc_video_cmds = of_get_property(np,
 						"cm,mdss-livedisplay-cabc-video-cmd", &mlc->cabc_video_cmds_len);
 			}
-=======
->>>>>>> 39dd0a2dc922... video: mdss: LiveDisplay driver
 		}
 		rc = of_property_read_u32(np, "cm,mdss-livedisplay-sre-medium-value", &tmp);
 		if (rc == 0) {
