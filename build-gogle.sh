@@ -24,8 +24,7 @@ export KBUILD_BUILD_HOST=MohammadIqbal🇮🇩
 
 # compile plox
 make O=out ARCH=arm64 predator_defconfig
-
-PATH=home/loli/clang-4691093/bin:home/loli/gcc64/bin:home/loli/gcc32/bin:${PATH}" \
+PATH=home/loli/clang-4691093/bin:home/loli/gcc64/bin:home/loli/gcc32/bin:${PATH} \
 make -j$(nproc --all) O=out \
                       ARCH=arm64 \
                       CC=clang \
