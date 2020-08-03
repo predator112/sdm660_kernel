@@ -109,9 +109,6 @@ void init_sched_energy_costs(void)
 					cap_states[i].frequency = 0;
 					cap_states[i].cap = be32_to_cpup(val++);
 				}
-
-				cap_states[i].cap = SCHED_CAPACITY_SCALE;
-				cap_states[i].frequency = be32_to_cpup(val++);
 				cap_states[i].power = be32_to_cpup(val++);
 			}
 
@@ -149,20 +146,11 @@ out:
 
 static int sched_energy_probe(struct platform_device *pdev)
 {
-<<<<<<< HEAD
-=======
-	unsigned long max_freq = 0;
-	int max_efficiency = INT_MIN;
->>>>>>> 918af0b09393... sched: energy: calculate and update CPU capacity dynamically
 	int cpu;
 	unsigned long *max_frequencies = NULL;
 	int ret;
 
-<<<<<<< HEAD
 	if (!sched_feat(ENERGY_AWARE) || !freq_energy_model)
-=======
-	if (!sched_feat(ENERGY_AWARE))
->>>>>>> 918af0b09393... sched: energy: calculate and update CPU capacity dynamically
 		return 0;
 
 	max_frequencies = kmalloc_array(nr_cpu_ids, sizeof(unsigned long),
@@ -179,12 +167,6 @@ static int sched_energy_probe(struct platform_device *pdev)
 	for_each_possible_cpu(cpu) {
 		struct device *cpu_dev;
 		struct dev_pm_opp *opp;
-<<<<<<< HEAD
-=======
-		int efficiency = arch_get_cpu_efficiency(cpu);
-
-		max_efficiency = max(efficiency, max_efficiency);
->>>>>>> 918af0b09393... sched: energy: calculate and update CPU capacity dynamically
 
 		cpu_dev = get_cpu_device(cpu);
 		if (IS_ERR_OR_NULL(cpu_dev)) {
@@ -211,27 +193,13 @@ static int sched_energy_probe(struct platform_device *pdev)
 
 		/* Convert HZ to KHZ */
 		max_frequencies[cpu] /= 1000;
-<<<<<<< HEAD
-=======
-		max_freq = max(max_freq, max_frequencies[cpu]);
->>>>>>> 918af0b09393... sched: energy: calculate and update CPU capacity dynamically
 	}
 
 	/* update capacity in energy model */
 	for_each_possible_cpu(cpu) {
 		unsigned long cpu_max_cap;
 		struct sched_group_energy *sge_l0, *sge;
-<<<<<<< HEAD
 		cpu_max_cap = arch_get_cpu_efficiency(cpu);
-=======
-		int efficiency = arch_get_cpu_efficiency(cpu);
-
-		cpu_max_cap = DIV_ROUND_UP(SCHED_CAPACITY_SCALE *
-					   max_frequencies[cpu], max_freq);
-		cpu_max_cap = DIV_ROUND_UP(cpu_max_cap * efficiency,
-					   max_efficiency);
-
->>>>>>> 918af0b09393... sched: energy: calculate and update CPU capacity dynamically
 		/*
 		 * All the cap_states have same frequency table so use
 		 * SD_LEVEL0's.
@@ -269,14 +237,6 @@ static int sched_energy_probe(struct platform_device *pdev)
 			}
 		}
 
-<<<<<<< HEAD
-=======
-		dev_dbg(&pdev->dev,
-			"cpu=%d efficiency=%d max_frequency=%ld max_efficiency=%d cpu_max_capacity=%ld\n",
-			cpu, efficiency, max_frequencies[cpu], max_efficiency,
-			cpu_max_cap);
-
->>>>>>> 918af0b09393... sched: energy: calculate and update CPU capacity dynamically
 		arch_update_cpu_capacity(cpu);
 	}
 
@@ -291,36 +251,17 @@ exit_rcu_unlock:
 exit:
 	if (ret != -EPROBE_DEFER)
 		dev_err(&pdev->dev, "error=%d\n", ret);
-<<<<<<< HEAD
-=======
-
->>>>>>> 918af0b09393... sched: energy: calculate and update CPU capacity dynamically
 	kfree(max_frequencies);
 	return ret;
 }
 
-<<<<<<< HEAD
 static struct platform_driver energy_driver = {
 	.driver = {
 		.name = "sched-energy",
-=======
-static const struct of_device_id of_sched_energy_dt[] = {
-	{
-		.compatible = "sched-energy",
-	},
-	{ }
-};
-
-static struct platform_driver energy_driver = {
-	.driver = {
-		.name = "sched-energy",
-		.of_match_table = of_sched_energy_dt,
->>>>>>> 918af0b09393... sched: energy: calculate and update CPU capacity dynamically
 	},
 	.probe = sched_energy_probe,
 };
 
-<<<<<<< HEAD
 static struct platform_device energy_device = {
 	.name = "sched-energy",
 };
@@ -338,10 +279,5 @@ static int __init sched_energy_init(void)
 		platform_device_unregister(&energy_device);
 	}
 	return ret;
-=======
-static int __init sched_energy_init(void)
-{
-	return platform_driver_register(&energy_driver);
->>>>>>> 918af0b09393... sched: energy: calculate and update CPU capacity dynamically
 }
 subsys_initcall(sched_energy_init);
