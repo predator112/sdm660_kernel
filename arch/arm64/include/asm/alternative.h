@@ -57,8 +57,6 @@ void apply_alternatives(void *start, size_t length);
 	newinstr "\n"							\
 	"664:\n\t"							\
 	".popsection\n\t"						\
-
-	".previous\n\t"							\
 	".org	. - (664b-663b) + (662b-661b)\n\t"			\
 	".org	. - (662b-661b) + (664b-663b)\n"			\
 	".endif\n"
