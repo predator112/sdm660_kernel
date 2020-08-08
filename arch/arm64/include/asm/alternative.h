@@ -58,9 +58,9 @@ void apply_alternatives(void *start, size_t length);
 	"664:\n\t"							\
 	".popsection\n\t"						\
 
+	".previous\n\t"							\
 	".org	. - (664b-663b) + (662b-661b)\n\t"			\
-	".org	. - (662b-661b) + (664b-663b)\n\t"			\
-	".previous\n"							\
+	".org	. - (662b-661b) + (664b-663b)\n"			\
 	".endif\n"
 
 #define _ALTERNATIVE_CFG(oldinstr, newinstr, feature, cfg, ...)	\
