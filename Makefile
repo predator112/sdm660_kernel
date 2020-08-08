@@ -494,7 +494,7 @@ ifneq ($(filter $(no-dot-config-targets), $(MAKECMDGOALS)),)
 		dot-config := 0
 	endif
 ifeq ($(cc-name),clang)
-ifneq ($(CROSS_COMPILE),)
+ifeq ($(CROSS_COMPILE),)
 CLANG_TRIPLE	?= $(CROSS_COMPILE)
 CLANG_FLAGS	+= --target=$(notdir $(CLANG_TRIPLE:%-=%))
 ifeq ($(shell $(srctree)/scripts/clang-android.sh $(CC) $(CLANG_FLAGS)), y)
@@ -506,7 +506,6 @@ GCC_TOOLCHAIN	:= $(realpath $(GCC_TOOLCHAIN_DIR)/..)
 endif
 ifneq ($(GCC_TOOLCHAIN),)
 CLANG_FLAGS	+= --gcc-toolchain=$(GCC_TOOLCHAIN)endif
-endif
 
 ifeq ($(KBUILD_EXTMOD),)
         ifneq ($(filter config %config,$(MAKECMDGOALS)),)
