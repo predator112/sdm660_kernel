@@ -1,4 +1,4 @@
-VERSION = 4
+_VERSION = 4
 PATCHLEVEL = 4
 SUBLEVEL = 192
 EXTRAVERSION =
@@ -494,7 +494,7 @@ ifneq ($(filter $(no-dot-config-targets), $(MAKECMDGOALS)),)
 		dot-config := 0
 	endif
 ifeq ($(cc-name),clang)
-ifeq ($(CROSS_COMPILE),)
+ifneq ($(CROSS_COMPILE),)
 CLANG_TRIPLE	?= $(CROSS_COMPILE)
 CLANG_FLAGS	+= --target=$(notdir $(CLANG_TRIPLE:%-=%))
 ifeq ($(shell $(srctree)/scripts/clang-android.sh $(CC) $(CLANG_FLAGS)), y)
