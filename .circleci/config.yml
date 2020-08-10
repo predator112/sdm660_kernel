@@ -11,9 +11,9 @@ jobs:
            git clone https://github.com/predator112/sdm660_kernel.git -b perf --depth=1 kernel
            cd kernel
            git clone https://github.com/PREDATOR-project/myscripts.git -b master
-           chmod +x myscripts/envsetup.sh
+           chmod +x myscripts/setup-test.sh
            chmod +x myscripts/build.sh
-           source ./myscripts/envsetup.sh
+           source ./myscripts/setup-test.sh
            ./myscripts/build.sh
 workflows:
   version: 2.1
