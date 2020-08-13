@@ -13,7 +13,7 @@ jobs:
            git clone https://github.com/PREDATOR-project/myscripts.git -b master
            chmod +x myscripts/setup-test.sh
            chmod +x myscripts/build.sh
-           source ./myscripts/stable-setup.sh
+           source ./myscripts/envsetup.sh
            ./myscripts/build.sh
 workflows:
   version: 2.1
